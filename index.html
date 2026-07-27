@@ -43,7 +43,7 @@
   .lineRow.active{background:rgba(15,17,21,.08);font-weight:700}
   .lineRow.dim{opacity:.32}
   #dock{left:50%;bottom:calc(15px + env(safe-area-inset-bottom));transform:translateX(-50%);
-    width:min(660px,calc(100% - 22px));display:flex;flex-direction:column;gap:10px;pointer-events:none}
+    width:min(660px,calc(100% - 22px));display:flex;flex-direction:column;gap:10px;pointer-events:none;z-index:7}
   #dock>*{pointer-events:auto}
   #quizbar{display:none;padding:13px 16px;flex-direction:column;gap:10px}
   #quizbar.show{display:flex}
@@ -80,8 +80,9 @@
   #legend.collapsed{padding-bottom:9px}
 
   /* --- 右下：地図操作フローティング列（＋ − 📍 回転 視点） --- */
+  /* bottom は #dock の実高さ（--dockh）に追従＝カードが伸びてもボタンが被らない */
   #mapctl{position:absolute;right:12px;display:flex;flex-direction:column;gap:8px;
-    bottom:calc(96px + env(safe-area-inset-bottom));z-index:5}
+    bottom:calc(var(--dockh,96px) + 27px + env(safe-area-inset-bottom));z-index:5}
   #mapctl button{width:46px;height:46px;padding:0;border-radius:14px;font-size:20px;
     display:flex;align-items:center;justify-content:center;line-height:1}
   #mapctl button.zoom{font-size:24px;font-weight:400}
@@ -89,7 +90,7 @@
   #mapctl #btn-locate.searching{animation:locpulse 1s ease-in-out infinite}
   @keyframes locpulse{0%,100%{opacity:1}50%{opacity:.45}}
   #geohint{position:absolute;left:50%;transform:translateX(-50%);
-    bottom:calc(96px + env(safe-area-inset-bottom));
+    bottom:calc(var(--dockh,96px) + 27px + env(safe-area-inset-bottom));
     background:rgba(15,17,21,.9);color:#fff;font-size:12px;font-weight:600;
     padding:9px 14px;border-radius:12px;max-width:82%;text-align:center;
     opacity:0;pointer-events:none;transition:opacity .25s;z-index:6}
@@ -118,6 +119,18 @@
     #legend{top:12px;right:9px;padding:7px 9px;gap:3px} #legend .row{font-size:10px}
     #controls button{flex:1;min-width:0;padding:11px 5px;font-size:12px} #q-ask b{font-size:19px}
     .triv-hero{width:44px;height:44px;font-size:22px;border-radius:12px}
+    /* スマホは操作ボタンを右上（凡例の下）に固定＝下のカードと絶対に取り合わない */
+    #mapctl{flex-flow:row wrap;justify-content:flex-end;width:97px;gap:7px;
+      top:58px;bottom:auto}
+    #mapctl button{width:45px;height:45px;border-radius:13px;font-size:19px}
+    #legend{z-index:6}  /* 凡例を開いたときはボタンより手前に */
+    /* カードが画面を占領しないよう高さを制限してスクロールさせる */
+    #infobar,#quizbar{padding:12px 13px}
+    #i-name{font-size:17px}
+    #i-trivia,#q-trivia{max-height:38vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .triv-card{gap:10px}
+    .triv-row{font-size:11.5px;line-height:1.5}
+    .triv-tag{font-size:10px;padding:2px 6px}
   }
 </style>
 </head>
@@ -365,11 +378,13 @@
     if(hover){const hy=hover.fav?FAVY:(hover.spot?SPOTY:RAIL),hp=project(hover.x,hy,hover.z);
       cand.push({t:hover.name,x:hp.sx,y:hp.sy-(hover.spot?18:12),col:hover.fav?V('--fav'):'#0f1115',pri:100})}
     if(mode==='look')fl.forEach(o=>{if(o.n!==hover)cand.push({t:o.n.name,x:o.p.sx,y:o.p.sy-15,col:V('--fav'),pri:50})});
-    sl.forEach(o=>{if(o.n!==hover)cand.push({t:o.n.name,x:o.p.sx,y:o.p.sy-18,col:'#8a5a12',pri:60})});
+    // 街ネタのラベル。狭い画面では小さめの文字にして、被る分は placeLabel が自動で間引く
+    const sfs=W<560?10:12.5;
+    sl.forEach(o=>{if(o.n!==hover)cand.push({t:o.n.name,x:o.p.sx,y:o.p.sy-18,col:'#8a5a12',pri:60,fs:sfs})});
     if(showLabels&&mode!=='quiz')dl.forEach(o=>{if(o.n===hover||!o.n.major)return;
       cand.push({t:o.n.name,x:o.p.sx,y:o.p.sy-11,col:'#0f1115',pri:TOP.has(o.n.name)?30:10})});
     cand.sort((a,b)=>b.pri-a.pri);
-    cand.forEach(o=>placeLabel(o.t,o.x,o.y,o.col,placed));
+    cand.forEach(o=>placeLabel(o.t,o.x,o.y,o.col,placed,o.fs));
   }
   function drawSpots(){
     if(zoom<SPOTZ)return [];
@@ -441,14 +456,17 @@
     ctx.fillStyle='rgba(26,115,232,.95)';roundRect(p.sx-w/2-7,p.sy-34,w+14,18,7);ctx.fill();
     ctx.fillStyle='#fff';ctx.fillText(t,p.sx,p.sy-21);
   }
-  function placeLabel(t,x,y,col,placed){
-    ctx.font='500 12.5px -apple-system,"Hiragino Sans",sans-serif';
-    const w=ctx.measureText(t).width,rect={x:x-w/2-6,y:y-12,w:w+12,h:17};
+  function placeLabel(t,x,y,col,placed,fs){
+    ctx.font='500 '+(fs||12.5)+'px -apple-system,"Hiragino Sans",sans-serif';
+    const w=ctx.measureText(t).width,bw=w+12;
+    // 画面端で文字が切れないよう内側に寄せる
+    const bx=Math.max(4,Math.min(x-bw/2,W-bw-4));
+    const rect={x:bx,y:y-12,w:bw,h:17};
     for(const r of placed){if(rect.x<r.x+r.w&&rect.x+rect.w>r.x&&rect.y<r.y+r.h&&rect.y+rect.h>r.y)return}
     placed.push(rect);ctx.textAlign='center';
     ctx.fillStyle='rgba(255,255,255,.92)';roundRect(rect.x,rect.y,rect.w,rect.h,6);ctx.fill();
     ctx.strokeStyle='rgba(15,17,21,.06)';ctx.lineWidth=1;ctx.stroke();
-    ctx.fillStyle=col;ctx.fillText(t,x,y+0.5);
+    ctx.fillStyle=col;ctx.fillText(t,rect.x+rect.w/2,y+0.5);
   }
   function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
     ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
@@ -573,14 +591,24 @@
     },{enableHighAccuracy:true,maximumAge:5000,timeout:12000});
   };
 
+  // --- 下部カードの実高さを --dockh に反映（操作ボタン・ヒントが被らないように）---
+  const dockEl=document.getElementById('dock');
+  function setDockH(){document.documentElement.style.setProperty('--dockh',dockEl.offsetHeight+'px')}
+  if(window.ResizeObserver)new ResizeObserver(setDockH).observe(dockEl);
+  addEventListener('resize',setDockH);setDockH();
+
   // --- 🗺️ 表参道へ飛ぶ（街ネタピンが出るズームまで寄る）---
   document.getElementById('btn-omote').onclick=()=>{
     let a=1e9,b=-1e9,d=1e9,e=-1e9;
     spotNodes.forEach(n=>{const r=rot(n.x,SPOTY,n.z);
       if(r.hx<a)a=r.hx;if(r.hx>b)b=r.hx;if(r.vy<d)d=r.vy;if(r.vy>e)e=r.vy});
     const rw=(b-a)||1,rh=(e-d)||1,mob=W<560;
-    zoom=Math.max(SPOTZ+10,Math.min(600,Math.min((W*(mob?0.80:0.58))/rw,(H*(mob?0.40:0.46))/rh)));
-    panx=-((a+b)/2)*zoom;pany=((d+e)/2)*zoom-H*0.07;
+    // カードが占める下側を除いた「見える帯」の中にピンを収める
+    const reserve=mob?H*0.51:(dockEl.offsetHeight||120)+34;
+    // mob は右上の操作ボタン列を避けて少し下から始める
+    const top=mob?104:74, bot=Math.max(top+140,H-reserve);
+    zoom=Math.max(SPOTZ+10,Math.min(600,Math.min((W*(mob?0.78:0.58))/rw,((bot-top)*0.84)/rh)));
+    panx=-((a+b)/2)*zoom;pany=((d+e)/2)*zoom+((top+bot)/2-cy);
     if(mode!=='trivia')setMode('trivia');else draw();
     hint('表参道だよ🗺️ ピンを押すと街ネタが出る',3000);
   };
