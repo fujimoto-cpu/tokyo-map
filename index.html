@@ -476,10 +476,12 @@
       const p=project(n.x,SPOTY,n.z),d=Math.hypot(p.sx-mx,p.sy-my);if(d<bd){bd=d;best=n}});
     return best}
 
-  let lx,ly,moved=0,pointers=new Map(),pinchD=0,midX=0,midY=0,rotateMode=false;
+  let lx,ly,moved=0,pointers=new Map(),pinchD=0,midX=0,midY=0,rotateMode=false,multi=false;
   c.addEventListener('pointerdown',e=>{c.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    moved=0;lx=e.clientX;ly=e.clientY;
-    if(pointers.size===2){const p=[...pointers.values()];pinchD=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+    lx=e.clientX;ly=e.clientY;
+    // moved のリセットは1本目だけ。2本目で 0 に戻すとピンチがタップ扱いされる
+    if(pointers.size===1){moved=0;multi=false}
+    if(pointers.size>=2){multi=true;const p=[...pointers.values()];pinchD=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
       midX=(p[0].x+p[1].x)/2;midY=(p[0].y+p[1].y)/2;}
   });
   c.addEventListener('pointermove',e=>{
@@ -498,11 +500,16 @@
     }else{const h=pick(e.clientX,e.clientY);if(h!==hover){hover=h;c.style.cursor=h?'pointer':'grab';draw()}}
   });
   function up(e){pointers.delete(e.pointerId);if(pointers.size<2)pinchD=0;
-    if(moved<6)onClick(e.clientX,e.clientY)}
+    // 2本→1本になった瞬間、残った指を基準に置き直す（古い lx,ly のままだと地図が飛ぶ）
+    if(pointers.size===1){const q=[...pointers.values()][0];lx=q.x;ly=q.y}
+    if(!multi&&moved<6)onClick(e.clientX,e.clientY);
+    if(pointers.size===0)multi=false}
   c.addEventListener('pointerup',up);c.addEventListener('pointercancel',up);
   c.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(4,Math.min(600,zoom*(e.deltaY<0?1.1:0.9)));draw()},{passive:false});
-  c.addEventListener('dblclick',resetView);
-  let lastTap=0;c.addEventListener('pointerup',()=>{const t=Date.now();if(t-lastTap<300)resetView();lastTap=t});
+  c.addEventListener('dblclick',resetView);  // マウスのダブルクリックのみ。pinchでは発火しない
+  // ★旧「300ms以内の連続 pointerup = ダブルタップ → resetView」は削除。
+  //   2本指を離すと pointerup が2連続で飛ぶため、ピンチ拡大の直後に必ず視点リセットが暴発していた。
+  //   視点を戻したいときは ↺ ボタンを使う。
   function onClick(mx,my){const n=pick(mx,my);if(!n)return;
     if(mode==='quiz')answer(n);else if(mode==='trivia')showInfo(n);else{hover=n;draw()}}
 
