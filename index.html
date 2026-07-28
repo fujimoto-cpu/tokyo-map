@@ -107,8 +107,9 @@
   .triv-hero.cat-transit{background:linear-gradient(150deg,#d8f0f2,#b6e2e6)}
   .triv-hero.cat-now{background:linear-gradient(150deg,#ffe9d1,#ffcfa4)}
   .triv-facts{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
-  .triv-row{display:flex;gap:6px;font-size:12px;line-height:1.5;color:#3a3d45}
-  .triv-tag{flex:0 0 auto;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;margin-top:1px}
+  .triv-row{display:flex;gap:7px;font-size:12px;line-height:1.6;color:#3a3d45}
+  /* align-self が無いと flex の既定(stretch)でタグの色ボックスが行の高さまで伸びる */
+  .triv-tag{flex:0 0 auto;align-self:flex-start;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;margin-top:1px}
   .triv-tag.hist{background:#fdeccb;color:#9a6a12}
   .triv-tag.near{background:#dcecff;color:#1f5fb0}
   .triv-tag.fun{background:#ffe0ee;color:#c23070}
@@ -128,9 +129,11 @@
     #infobar,#quizbar{padding:12px 13px}
     #i-name{font-size:17px}
     #i-trivia,#q-trivia{max-height:38vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
-    .triv-card{gap:10px}
-    .triv-row{font-size:11.5px;line-height:1.5}
-    .triv-tag{font-size:10px;padding:2px 6px}
+    /* 狭い画面はタグを文字の上に積む＝本文が全幅使えて行間も取れる */
+    .triv-card{gap:11px}
+    .triv-facts{gap:12px}
+    .triv-row{flex-direction:column;gap:4px;font-size:12.5px;line-height:1.75}
+    .triv-tag{font-size:10px;padding:2px 7px;margin-top:0}
   }
 </style>
 </head>
@@ -250,37 +253,37 @@
   // 🗺️ 街ネタ：表参道の「歩いてる場所の裏側」。拡大（zoom>=SPOTZ）で出る／豆知識モードでタップ
   // cat:'now' は時事ネタ＝賞味期限あり。now: に基準日を必ず書く
   const SPOTS=[
-    {name:"東急プラザ表参道 オモカド",lat:35.6690,lon:139.7052,icon:"🛍️",cat:"now",
+    {name:"東急プラザ表参道 オモカド",short:"オモカド",lat:35.6690,lon:139.7052,icon:"🛍️",cat:"now",
      history:"神宮前の交差点角に建つ商業ビル、通称「オモカド」。2026年はこの1棟がニュースの中心になった。",
      nearby:"1F に Google Store 表参道（2026/8/13 オープン・米国外で初のGoogle直営店）、3F に韓国・現代百貨店の「THE 現代 表参道店」（2026/7/10 オープン・全9区画）。",
      fun:"アメリカ以外で世界初のGoogle直営店と、韓国百貨店の日本常設店が同じビルに同居する構図になった。THE 現代にはK-POPグッズのWITHMUU、ソウル発のCAMEL COFFEEも入る。",
      now:"2026年7月28日時点。Google Store は 8/13 オープン＝まだ開いてない"},
-    {name:"表参道ヒルズ",lat:35.6667,lon:139.7085,icon:"🏛️",cat:"history",
+    {name:"表参道ヒルズ",short:"表参道ヒルズ",lat:35.6667,lon:139.7085,icon:"🏛️",cat:"history",
      history:"1926年築の同潤会青山アパートの跡地。関東大震災の翌年にできた同潤会による、日本最初期の鉄筋コンクリート集合住宅だった。2003年に解体。",
      nearby:"安藤忠雄設計の表参道ヒルズ本館。東端の蔦の絡まる「同潤館」に、旧アパートの名前と佇まいが受け継がれている。",
      fun:"1945年の空襲で表参道のケヤキはほぼ焼失したが、このアパート前の数本だけは焼け残った。耐震耐火のアパートが防火壁になった証拠とされる。"},
-    {name:"キャットストリート（旧渋谷川）",lat:35.6673,lon:139.7063,icon:"🐈",cat:"nature",
+    {name:"キャットストリート（旧渋谷川）",short:"キャットSt",lat:35.6673,lon:139.7063,icon:"🐈",cat:"nature",
      history:"正式名は「旧渋谷川遊歩道路」。1967年3月に暗渠化された渋谷川（この一帯では穏田川と呼ばれた）の上に作られた道。",
      nearby:"神宮前3〜5丁目を縫うように走る。今も地元に「原宿穏田商店会」として旧地名が残っている。",
      fun:"葛飾北斎『冨嶽三十六景』の「隠田の水車」は、この付近にあった水車がモチーフとされる。名前の由来は「猫の額のように狭い」「猫が多い」など諸説あり。"},
-    {name:"表参道のケヤキ並木",lat:35.6680,lon:139.7090,icon:"🌳",cat:"nature",
+    {name:"表参道のケヤキ並木",short:"ケヤキ並木",lat:35.6680,lon:139.7090,icon:"🌳",cat:"nature",
      history:"1920年の明治神宮造営時に、参道の両側へ201本のケヤキが植えられた。",
      nearby:"青山通りの表参道交差点から原宿駅前の神宮橋交差点まで、全長約1.1km。道の正体は都道413号。",
      fun:"1945年の空襲で13本を残して焼失。1948年から補植して、今は155本。毎日その155本の下を歩いてることになる。"},
-    {name:"明治神宮の森",lat:35.6764,lon:139.6993,icon:"🌲",cat:"nature",
+    {name:"明治神宮の森",short:"明治神宮の森",lat:35.6764,lon:139.6993,icon:"🌲",cat:"nature",
      history:"1920年11月1日創建。森は自生林ではなく、全国から献木された約10万本を、のべ11万人の青年ボランティアが植えてつくった人工林。",
      nearby:"原宿駅・神宮橋がすぐ。代々木公園に隣接し、都心とは思えない緑地帯が続く。",
      fun:"当初365種12万本→現在は234種3万6千本まで自然に絞られ、ほぼ照葉樹の森に。本多静六らが描いた「150年後の姿」が100年で実現した＝100年計画のブランディングが前倒しで完成した森。"},
-    {name:"神宮橋",lat:35.6706,lon:139.7027,icon:"⛩️",cat:"history",
+    {name:"神宮橋",short:"神宮橋",lat:35.6706,lon:139.7027,icon:"⛩️",cat:"history",
      history:"表参道の原宿側の起点。ここから青山通りまでが「表参道」と呼ばれる区間になる。",
      nearby:"原宿駅、明治神宮の大鳥居、竹下通りの入口まですぐ。",
      fun:"「表」参道があるからには裏もあって、明治神宮には対をなす「裏参道」も実在する。"},
-    {name:"表参道 Grid Tower",lat:35.6680,lon:139.7178,icon:"🏢",cat:"now",
+    {name:"表参道 Grid Tower",short:"Grid Tower",lat:35.6680,lon:139.7178,icon:"🏢",cat:"now",
      history:"2026年1月竣工、2月から順次開業。地上38階・高さ約160mで、表参道・青山エリア最高層のランドマーク（三井不動産）。",
      nearby:"青山通り沿い、南青山3-8-35。表参道駅から徒歩4分・外苑前駅から徒歩6分。",
      fun:"11〜14階にロンドン発の会員制クラブ「Soho House」が日本初進出。2〜10階オフィス、16階以上が賃貸住宅、1階にCRISP SALAD WORKSなど4店舗。",
      now:"2026年7月28日時点"},
-    {name:"グリーンテラス表参道",lat:35.6658,lon:139.7140,icon:"🌱",cat:"urban",
+    {name:"グリーンテラス表参道",short:"グリーンテラス",lat:35.6658,lon:139.7140,icon:"🌱",cat:"urban",
      history:"長く親しまれた児童書・オーガニックの店「クレヨンハウス」跡地に、2025年3月に開業した商業施設。",
      nearby:"B1〜4Fに飲食・物販。各階のテラスに違う植栽を配して、立体的な空中庭園を歩く感覚で設計されている。",
      fun:"「ラルチザン パフューマー」が日本再上陸。B1にはコーヒーのPHILOCOFFEAが入っている。"}
@@ -303,8 +306,15 @@
   }
   LINES.forEach(L=>L.pts.forEach(s=>addNode(s[0],s[1],s[2],s[3])));
   const favNodes=favorites.map(f=>{const p=toXZ(f[1],f[2]);return{name:f[0],x:p.x,z:p.z,fav:1}});
+  // 🛣 通り（表参道エリア・座標は概算）。zoom>=SPOTZ で表示＝「いま自分がどの道にいるか」の手がかり
+  const STREETS=[
+    {name:"表参道",w:7,pts:[[35.6706,139.7027],[35.6690,139.7060],[35.6673,139.7092],[35.6655,139.7122]]},
+    {name:"青山通り",w:7,pts:[[35.6592,139.7014],[35.6620,139.7060],[35.6655,139.7122],[35.6690,139.7178],[35.6728,139.7240]]},
+    {name:"キャットストリート",w:4,pts:[[35.6715,139.7078],[35.6697,139.7071],[35.6680,139.7066],[35.6673,139.7063],[35.6658,139.7052],[35.6640,139.7040],[35.6625,139.7028]]}
+  ];
   const SPOTY=0.72, SPOTZ=70;
   const spotNodes=SPOTS.map(s=>{const p=toXZ(s.lat,s.lon);return{name:s.name,x:p.x,z:p.z,spot:1,t:s}});
+  const streetPaths=STREETS.map(s=>({name:s.name,w:s.w,xz:s.pts.map(p=>toXZ(p[0],p[1]))}));
   const allStations=[...nodes.values()];
   const fitPts=[...allStations,...favNodes];
   const TOP=new Set(["東京","新宿","渋谷","池袋","品川","上野","横浜","川崎","石川町","吉祥寺",
@@ -330,6 +340,14 @@
     panx=-((a+b)/2)*zoom;pany=((d+e)/2)*zoom - H*(mob?0.05:0.03);
   }
   function resetView(){yaw=V0.yaw;pitch=V0.pitch;fitView();draw()}
+  // 画面座標(ax,ay)にある地点を動かさないまま zoom を z1 にする。
+  // 中央基準で拡大すると、見ていた場所が画面外へ吹き飛んで「消える」ため必須。
+  function zoomTo(z1,ax,ay){
+    const z=Math.max(4,Math.min(600,z1)),k=z/zoom;
+    panx=ax-cx-(ax-cx-panx)*k;
+    pany=ay-cy+(cy+pany-ay)*k;
+    zoom=z;
+  }
   function resize(){
     DPR=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
     c.width=W*DPR;c.height=H*DPR;c.style.width=W+'px';c.style.height=H+'px';
@@ -340,7 +358,7 @@
   let myPos=null,geoOn=false,pulseT=0,rafId=0;
   function draw(){
     ctx.clearRect(0,0,W,H);
-    drawGeo();drawShadow();
+    drawGeo();drawShadow();drawStreets();
     LINES.forEach(L=>{
       const active=activeLine===L.key, dim=!!activeLine&&!active;
       const ps=L.pts.map(s=>{const n=nodes.get(s[0]);return project(n.x,RAIL,n.z)});
@@ -375,16 +393,36 @@
     const sl=drawSpots();
     drawMe();
     const cand=[],placed=[];
+    // ピンの丸を「先に場所取り」しておく＝ラベルがピンに重なって絵柄を隠すのを防ぐ。
+    // 丸は約23px（半径12）。ラベルは -22 に置くので自分の丸とはギリギリ当たらない。
+    sl.forEach(o=>placed.push({x:o.p.sx-12,y:o.p.sy-12,w:24,h:24}));
+    // HUD（凡例・操作ボタン）の下にラベルが潜り込まないよう、その矩形も場所取りしておく
+    placed.push({x:W-150,y:4,w:146,h:48});
+    if(W<560)placed.push({x:W-112,y:52,w:104,h:158});
+    // 通り名（低優先。ピン・駅名に負けたら出さない）
+    if(zoom>=SPOTZ)streetPaths.forEach(s=>{const q=s.xz[Math.floor(s.xz.length/2)],p=project(q.x,0,q.z);
+      cand.push({t:s.name,x:p.sx,y:p.sy,col:'#a09070',pri:20,fs:W<560?10:11.5})});
     if(hover){const hy=hover.fav?FAVY:(hover.spot?SPOTY:RAIL),hp=project(hover.x,hy,hover.z);
-      cand.push({t:hover.name,x:hp.sx,y:hp.sy-(hover.spot?18:12),col:hover.fav?V('--fav'):'#0f1115',pri:100})}
+      cand.push({t:hover.name,x:hp.sx,y:hp.sy-(hover.spot?22:12),col:hover.fav?V('--fav'):'#0f1115',pri:100})}
     if(mode==='look')fl.forEach(o=>{if(o.n!==hover)cand.push({t:o.n.name,x:o.p.sx,y:o.p.sy-15,col:V('--fav'),pri:50})});
     // 街ネタのラベル。狭い画面では小さめの文字にして、被る分は placeLabel が自動で間引く
     const sfs=W<560?10:12.5;
-    sl.forEach(o=>{if(o.n!==hover)cand.push({t:o.n.name,x:o.p.sx,y:o.p.sy-18,col:'#8a5a12',pri:60,fs:sfs})});
+    // 地図上は short（短い名前）。長い正式名はカード側に出るので情報は失われない
+    sl.forEach(o=>{if(o.n!==hover)cand.push({t:o.n.t.short||o.n.name,x:o.p.sx,y:o.p.sy-22,col:'#8a5a12',pri:60,fs:sfs})});
     if(showLabels&&mode!=='quiz')dl.forEach(o=>{if(o.n===hover||!o.n.major)return;
       cand.push({t:o.n.name,x:o.p.sx,y:o.p.sy-11,col:'#0f1115',pri:TOP.has(o.n.name)?30:10})});
     cand.sort((a,b)=>b.pri-a.pri);
     cand.forEach(o=>placeLabel(o.t,o.x,o.y,o.col,placed,o.fs));
+  }
+  function drawStreets(){
+    if(zoom<SPOTZ)return;
+    ctx.lineJoin='round';ctx.lineCap='round';
+    streetPaths.forEach(s=>{
+      const ps=s.xz.map(q=>project(q.x,0,q.z));
+      const path=()=>{ctx.beginPath();ps.forEach((p,i)=>i?ctx.lineTo(p.sx,p.sy):ctx.moveTo(p.sx,p.sy))};
+      ctx.strokeStyle='rgba(255,255,255,.95)';ctx.lineWidth=s.w+5;path();ctx.stroke();
+      ctx.strokeStyle='#e3d9c7';ctx.lineWidth=s.w;path();ctx.stroke();
+    });
   }
   function drawSpots(){
     if(zoom<SPOTZ)return [];
@@ -400,9 +438,10 @@
       ctx.restore();
       ctx.lineWidth=isH?2.2:1.3;ctx.strokeStyle=isNow?'#e08a3c':'rgba(15,17,21,.22)';
       roundRect(o.p.sx-s/2,o.p.sy-s/2,s,s,s*0.32);ctx.stroke();
-      ctx.font=(s*0.56)+'px -apple-system,"Hiragino Sans",sans-serif';
+      // 絵文字は em より大きく描かれるので 0.5 倍に抑えて丸からはみ出さないようにする
+      ctx.font=(s*0.5)+'px -apple-system,"Hiragino Sans",sans-serif';
       ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(o.n.t.icon,o.p.sx,o.p.sy+0.5);
+      ctx.fillText(o.n.t.icon,o.p.sx,o.p.sy+1);
       ctx.textBaseline='alphabetic';
     });
     return sl;
@@ -489,7 +528,13 @@
     if(pointers.size>=2){
       const p=[...pointers.values()],d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
       const mx=(p[0].x+p[1].x)/2,my=(p[0].y+p[1].y)/2;
-      if(pinchD){zoom=Math.max(4,Math.min(600,zoom*d/pinchD));panx+=mx-midX;pany+=my-midY;}
+      if(pinchD){
+        // 指の中心にあった地点が、新しい指の中心にそのまま来るように拡大＋移動する
+        const k=Math.max(4,Math.min(600,zoom*d/pinchD))/zoom;
+        panx=mx-cx-(midX-cx-panx)*k;
+        pany=my-cy+(cy+pany-midY)*k;
+        zoom=zoom*k;
+      }
       pinchD=d;midX=mx;midY=my;moved+=5;draw();return;
     }
     if(pointers.size===1){
@@ -505,7 +550,7 @@
     if(!multi&&moved<6)onClick(e.clientX,e.clientY);
     if(pointers.size===0)multi=false}
   c.addEventListener('pointerup',up);c.addEventListener('pointercancel',up);
-  c.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(4,Math.min(600,zoom*(e.deltaY<0?1.1:0.9)));draw()},{passive:false});
+  c.addEventListener('wheel',e=>{e.preventDefault();zoomTo(zoom*(e.deltaY<0?1.1:0.9),e.clientX,e.clientY);draw()},{passive:false});
   c.addEventListener('dblclick',resetView);  // マウスのダブルクリックのみ。pinchでは発火しない
   // ★旧「300ms以内の連続 pointerup = ダブルタップ → resetView」は削除。
   //   2本指を離すと pointerup が2連続で飛ぶため、ピンチ拡大の直後に必ず視点リセットが暴発していた。
@@ -561,8 +606,9 @@
   document.getElementById('btn-reset2').onclick=resetView;
   const bRot=document.getElementById('btn-rotate2');
   bRot.onclick=()=>{rotateMode=!rotateMode;bRot.classList.toggle('on',rotateMode)};
-  document.getElementById('btn-zin').onclick=()=>{zoom=Math.min(600,zoom*1.35);draw()};
-  document.getElementById('btn-zout').onclick=()=>{zoom=Math.max(4,zoom*0.74);draw()};
+  // ＋−も画面中央を固定して拡大縮小（見てる場所がズレない）
+  document.getElementById('btn-zin').onclick=()=>{zoomTo(zoom*1.35,cx,cy);draw()};
+  document.getElementById('btn-zout').onclick=()=>{zoomTo(zoom*0.74,cx,cy);draw()};
 
   // --- 現在地（GPS）---
   const bLoc=document.getElementById('btn-locate'),gh=document.getElementById('geohint');
@@ -611,7 +657,7 @@
       if(r.hx<a)a=r.hx;if(r.hx>b)b=r.hx;if(r.vy<d)d=r.vy;if(r.vy>e)e=r.vy});
     const rw=(b-a)||1,rh=(e-d)||1,mob=W<560;
     // カードが占める下側を除いた「見える帯」の中にピンを収める
-    const reserve=mob?H*0.51:(dockEl.offsetHeight||120)+34;
+    const reserve=mob?H*0.56:(dockEl.offsetHeight||120)+34;
     // mob は右上の操作ボタン列を避けて少し下から始める
     const top=mob?104:74, bot=Math.max(top+140,H-reserve);
     zoom=Math.max(SPOTZ+10,Math.min(600,Math.min((W*(mob?0.78:0.58))/rw,((bot-top)*0.84)/rh)));
